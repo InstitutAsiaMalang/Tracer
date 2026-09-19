@@ -38,7 +38,7 @@
   }
   h1,h2,h3, .display{ font-family:'Poppins',sans-serif; }
 
-  /* Animated background blobs */
+  /* Background Blobs */
   .blob-field{
     position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none;
   }
@@ -62,7 +62,7 @@
     *{ animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
   }
 
-  /* App shell */
+  /* App Card */
   .app{
     position:relative; z-index:1;
     width:100%; max-width:460px;
@@ -89,7 +89,7 @@
   }
   .brand .name{ font-size:13px; font-weight:600; color:var(--ink-soft); letter-spacing:.2px; }
 
-  /* Intro screen */
+  /* Intro */
   #screen-intro h1{
     font-size:26px; line-height:1.25; font-weight:800; margin:6px 0 10px;
   }
@@ -139,7 +139,7 @@
     transition: width .45s cubic-bezier(.65,0,.35,1);
   }
 
-  /* Question */
+  /* Question & Options */
   #screen-quiz .qnum{
     display:inline-flex; align-items:center; justify-content:center;
     width:30px; height:30px; border-radius:10px;
@@ -189,6 +189,7 @@
     margin-top:2px; margin-bottom:10px; animation: reveal .2s ease;
   }
   
+  /* Inline Follow-up */
   .inline-followup-box{
     margin-top:16px; padding:16px; border-radius:16px;
     background: #F4F1FE; border: 1.5px dashed var(--violet);
@@ -218,7 +219,7 @@
     to{ opacity:1; transform: translateX(0); }
   }
 
-  /* Loading */
+  /* Loading & Done */
   #screen-loading{ text-align:center; padding:30px 10px; }
   .spinner{
     width:42px; height:42px; margin:0 auto 16px;
@@ -228,7 +229,6 @@
   @keyframes spin{ to{ transform: rotate(360deg); } }
   #screen-loading p{ color:var(--ink-soft); font-size:14px; }
 
-  /* Done screen */
   #screen-done{ text-align:center; padding:14px 4px 6px; }
   .check-badge{
     width:72px; height:72px; border-radius:50%; margin:0 auto 18px;
@@ -329,11 +329,11 @@ const CONFIG = {
 
 let state = {
   questions: [],
-  followups: {},     // parentNo -> template pertanyaan lanjutan
+  followups: {},     
   index: 0,
-  answers: {},         // no -> string | string[]
-  followupAnswers: {}, // parentNo -> nominal angka penghasilan
-  otherText: {},        // "no|optionLabel" -> string
+  answers: {},         
+  followupAnswers: {}, 
+  otherText: {},        
   registry: {}
 };
 
@@ -400,8 +400,11 @@ function formatRupiahInput(val) {
   return split[1] != undefined ? rupiah + ',' + split[1] : rupiah;
 }
 
+// Deteksi variasi "Tidak bekerja", "Tidak bekerja/pensiun", atau pensiunan
 function isNoWork(label) {
-  return String(label).toLowerCase().indexOf('tidak bekerja') !== -1;
+  if (!label) return false;
+  const str = String(label).toLowerCase();
+  return str.indexOf('tidak bekerja') !== -1 || str.indexOf('belum bekerja') !== -1;
 }
 
 function renderQuestion(){
@@ -448,10 +451,13 @@ function renderQuestion(){
     });
     html += '</div>';
 
+    // Wadah input lanjutan inline penghasilan
     const hasFollowup = !!state.followups[q.no];
     if(hasFollowup){
       const tpl = state.followups[q.no];
       const currentSelected = state.answers[q.no] || '';
+      
+      // Sembunyikan jika belum dipilih ATAU jika memilih "Tidak bekerja"
       const isVisible = currentSelected && !isNoWork(currentSelected);
       const prevVal = state.followupAnswers[q.no] === '0' ? '' : (state.followupAnswers[q.no] || '');
       
@@ -509,14 +515,17 @@ function attachQuestionEvents(q){
             if(b.id !== 'other-' + i) b.classList.add('hidden');
           });
 
+          // Logika pilihan "Tidak bekerja" vs Pekerjaan lain
           const inlineBox = el('inline-followup-' + q.no);
           if(inlineBox){
             if(isNoWork(label)){
+              // Langsung sembunyikan pertanyaan follow up & simpan nilai "0"
               inlineBox.classList.add('hidden');
               state.followupAnswers[q.no] = '0';
               const inp = el('followup-input-' + q.no);
               if(inp) inp.value = '';
             } else {
+              // Jika memilih pekerjaan lain, munculkan pertanyaan follow up
               inlineBox.classList.remove('hidden');
               if(state.followupAnswers[q.no] === '0'){
                 state.followupAnswers[q.no] = '';
@@ -587,8 +596,14 @@ function validateCurrent(q){
     if(!val || String(val).trim() === '') return false;
   }
 
+  // Jika memilih "Tidak bekerja", validasi selalu lolos karena otomatis diisi 0
+  if(isNoWork(val)){
+    return true;
+  }
+
+  // Jika memilih selain "Tidak bekerja" dan follow-up diwajibkan
   const tpl = state.followups[q.no];
-  if(tpl && tpl.required && !isNoWork(val)){
+  if(tpl && tpl.required){
     const fVal = state.followupAnswers[q.no];
     if(!fVal || String(fVal).trim() === '') return false;
   }
@@ -625,17 +640,21 @@ async function submitAnswers(){
 
   const payload = { answers: {}, labels: {} };
 
+  // Jawaban soal utama
   Object.keys(state.registry).forEach(no => {
     const q = state.registry[no];
     payload.answers[no] = buildFinalValue(q);
   });
 
+  // Jawaban follow-up (penghasilan): catat angka 0 atau format Rp ...
   Object.keys(state.followupAnswers).forEach(parentNo => {
     let val = state.followupAnswers[parentNo];
     if(val !== undefined && val !== null && String(val).trim() !== ''){
       const subKey = parentNo + 'b';
       const tpl = state.followups[parentNo];
-      const formattedVal = (val === '0' || val === 0) ? '0' : ('Rp ' + String(val).trim());
+      
+      // Jika bernilai 0, tercatat sebagai "0"
+      const formattedVal = (String(val).trim() === '0') ? '0' : ('Rp ' + String(val).trim());
       
       payload.answers[subKey] = formattedVal;
       payload.labels[subKey] = (tpl && tpl.no ? tpl.no : subKey) + '. ' + (tpl ? tpl.text : 'Penghasilan');
