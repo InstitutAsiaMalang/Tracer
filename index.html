@@ -38,7 +38,7 @@
   }
   h1,h2,h3, .display{ font-family:'Poppins',sans-serif; }
 
-  /* ---------- Animated background blobs ---------- */
+  /* Animated background blobs */
   .blob-field{
     position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none;
   }
@@ -62,7 +62,7 @@
     *{ animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
   }
 
-  /* ---------- App shell ---------- */
+  /* App shell */
   .app{
     position:relative; z-index:1;
     width:100%; max-width:460px;
@@ -89,7 +89,7 @@
   }
   .brand .name{ font-size:13px; font-weight:600; color:var(--ink-soft); letter-spacing:.2px; }
 
-  /* ---------- Intro screen ---------- */
+  /* Intro screen */
   #screen-intro h1{
     font-size:26px; line-height:1.25; font-weight:800; margin:6px 0 10px;
   }
@@ -102,7 +102,7 @@
     background:var(--paper-dim); color:var(--violet);
   }
 
-  /* ---------- Buttons ---------- */
+  /* Buttons */
   .btn{
     appearance:none; border:none; cursor:pointer;
     font-family:'Poppins',sans-serif; font-weight:700; font-size:15px;
@@ -123,7 +123,7 @@
   .btn-row{ display:flex; gap:10px; margin-top:22px; }
   .btn-row .btn-primary{ flex:2; }
 
-  /* ---------- Progress ---------- */
+  /* Progress */
   .progress-wrap{ margin-bottom:20px; }
   .progress-top{
     display:flex; justify-content:space-between; align-items:baseline;
@@ -139,7 +139,7 @@
     transition: width .45s cubic-bezier(.65,0,.35,1);
   }
 
-  /* ---------- Question ---------- */
+  /* Question */
   #screen-quiz .qnum{
     display:inline-flex; align-items:center; justify-content:center;
     width:30px; height:30px; border-radius:10px;
@@ -189,7 +189,6 @@
     margin-top:2px; margin-bottom:10px; animation: reveal .2s ease;
   }
   
-  /* Box khusus isian angka penghasilan inline */
   .inline-followup-box{
     margin-top:16px; padding:16px; border-radius:16px;
     background: #F4F1FE; border: 1.5px dashed var(--violet);
@@ -219,7 +218,7 @@
     to{ opacity:1; transform: translateX(0); }
   }
 
-  /* ---------- Loading ---------- */
+  /* Loading */
   #screen-loading{ text-align:center; padding:30px 10px; }
   .spinner{
     width:42px; height:42px; margin:0 auto 16px;
@@ -229,7 +228,7 @@
   @keyframes spin{ to{ transform: rotate(360deg); } }
   #screen-loading p{ color:var(--ink-soft); font-size:14px; }
 
-  /* ---------- Done screen ---------- */
+  /* Done screen */
   #screen-done{ text-align:center; padding:14px 4px 6px; }
   .check-badge{
     width:72px; height:72px; border-radius:50%; margin:0 auto 18px;
@@ -401,6 +400,10 @@ function formatRupiahInput(val) {
   return split[1] != undefined ? rupiah + ',' + split[1] : rupiah;
 }
 
+function isNoWork(label) {
+  return String(label).toLowerCase().indexOf('tidak bekerja') !== -1;
+}
+
 function renderQuestion(){
   const q = currentQuestion();
   state.registry[q.no] = q;
@@ -445,12 +448,12 @@ function renderQuestion(){
     });
     html += '</div>';
 
-    // Wadah input lanjutan inline untuk penghasilan (jika ada template follow-up)
     const hasFollowup = !!state.followups[q.no];
     if(hasFollowup){
       const tpl = state.followups[q.no];
-      const isVisible = !!state.answers[q.no];
-      const prevVal = state.followupAnswers[q.no] || '';
+      const currentSelected = state.answers[q.no] || '';
+      const isVisible = currentSelected && !isNoWork(currentSelected);
+      const prevVal = state.followupAnswers[q.no] === '0' ? '' : (state.followupAnswers[q.no] || '');
       
       html += '<div class="inline-followup-box ' + (isVisible ? '' : 'hidden') + '" id="inline-followup-' + q.no + '">';
       html += '  <label>' + escapeHtml(tpl.text) + (tpl.required ? ' *' : ' (opsional)') + '</label>';
@@ -506,12 +509,24 @@ function attachQuestionEvents(q){
             if(b.id !== 'other-' + i) b.classList.add('hidden');
           });
 
-          // Munculkan isian follow up inline seketika setelah pilihan diklik
           const inlineBox = el('inline-followup-' + q.no);
           if(inlineBox){
-            inlineBox.classList.remove('hidden');
-            const inp = el('followup-input-' + q.no);
-            if(inp) inp.focus();
+            if(isNoWork(label)){
+              inlineBox.classList.add('hidden');
+              state.followupAnswers[q.no] = '0';
+              const inp = el('followup-input-' + q.no);
+              if(inp) inp.value = '';
+            } else {
+              inlineBox.classList.remove('hidden');
+              if(state.followupAnswers[q.no] === '0'){
+                state.followupAnswers[q.no] = '';
+              }
+              const inp = el('followup-input-' + q.no);
+              if(inp){
+                inp.value = state.followupAnswers[q.no] || '';
+                inp.focus();
+              }
+            }
           }
         }
 
@@ -523,14 +538,12 @@ function attachQuestionEvents(q){
       });
     });
 
-    // Event listener input opsi "Lainnya"
     document.querySelectorAll('.other-box input').forEach(inp => {
       inp.addEventListener('input', (e) => {
         state.otherText[e.target.dataset.key] = e.target.value;
       });
     });
 
-    // Event listener input inline penghasilan
     const followupInput = el('followup-input-' + q.no);
     if(followupInput){
       followupInput.addEventListener('input', (e) => {
@@ -574,9 +587,8 @@ function validateCurrent(q){
     if(!val || String(val).trim() === '') return false;
   }
 
-  // Validasi jika follow-up diwajibkan
   const tpl = state.followups[q.no];
-  if(tpl && tpl.required){
+  if(tpl && tpl.required && !isNoWork(val)){
     const fVal = state.followupAnswers[q.no];
     if(!fVal || String(fVal).trim() === '') return false;
   }
@@ -613,19 +625,19 @@ async function submitAnswers(){
 
   const payload = { answers: {}, labels: {} };
 
-  // Masukkan jawaban soal utama
   Object.keys(state.registry).forEach(no => {
     const q = state.registry[no];
     payload.answers[no] = buildFinalValue(q);
   });
 
-  // Masukkan jawaban isian follow-up langsung ke sheet sebagai nomor b (misal: 11b, 12b, 13b)
   Object.keys(state.followupAnswers).forEach(parentNo => {
-    const val = state.followupAnswers[parentNo];
-    if(val && val.trim()){
+    let val = state.followupAnswers[parentNo];
+    if(val !== undefined && val !== null && String(val).trim() !== ''){
       const subKey = parentNo + 'b';
       const tpl = state.followups[parentNo];
-      payload.answers[subKey] = 'Rp ' + val.trim();
+      const formattedVal = (val === '0' || val === 0) ? '0' : ('Rp ' + String(val).trim());
+      
+      payload.answers[subKey] = formattedVal;
       payload.labels[subKey] = (tpl && tpl.no ? tpl.no : subKey) + '. ' + (tpl ? tpl.text : 'Penghasilan');
     }
   });
