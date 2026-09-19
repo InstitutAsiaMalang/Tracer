@@ -1,299 +1,659 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tracer Study — Institut Asia Malang</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    body { font-family: 'Plus Jakarta Sans', sans-serif; }
-    .slide-in { animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-6px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Tracer Studi Asia — Ceritain Perjalanan Kuliahmu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --violet:#6C4EF5;
+    --pink:#FF5DA8;
+    --cyan:#33D6FF;
+    --sun:#FFC93C;
+    --ink:#1B1533;
+    --ink-soft:#6B6485;
+    --paper:#FFFFFF;
+    --paper-dim:#F6F3FF;
+    --danger:#FF4D6D;
+    --radius:26px;
+    --shadow: 0 20px 45px -18px rgba(108,78,245,0.35);
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    font-family:'Inter',sans-serif;
+    color:var(--ink);
+    min-height:100vh;
+    overflow-x:hidden;
+    background: linear-gradient(160deg,#EFEAFF 0%, #FDF0F7 45%, #EAFBFF 100%);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px 16px;
+  }
+  h1,h2,h3, .display{ font-family:'Poppins',sans-serif; }
+
+  /* ---------- Animated background blobs ---------- */
+  .blob-field{
+    position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none;
+  }
+  .blob{
+    position:absolute; border-radius:50%; filter: blur(50px); opacity:.55;
+    animation: drift 22s ease-in-out infinite;
+  }
+  .blob.b1{ width:340px; height:340px; top:-90px; left:-90px; background:var(--violet); animation-duration:26s; }
+  .blob.b2{ width:280px; height:280px; bottom:-80px; right:-60px; background:var(--pink); animation-duration:20s; animation-delay:-4s; }
+  .blob.b3{ width:220px; height:220px; top:55%; left:-70px; background:var(--cyan); animation-duration:24s; animation-delay:-9s; }
+  .blob.b4{ width:200px; height:200px; top:10%; right:-60px; background:var(--sun); animation-duration:18s; animation-delay:-2s; }
+
+  @keyframes drift{
+    0%,100%{ transform: translate(0,0) scale(1); }
+    33%{ transform: translate(24px,-18px) scale(1.08); }
+    66%{ transform: translate(-18px,20px) scale(0.95); }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .blob{ animation: none; }
+    *{ animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  }
+
+  /* ---------- App shell ---------- */
+  .app{
+    position:relative; z-index:1;
+    width:100%; max-width:460px;
+  }
+
+  .card{
+    background:var(--paper);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:34px 28px 26px;
+    position:relative;
+    overflow:hidden;
+  }
+
+  .brand{
+    display:flex; align-items:center; gap:10px; margin-bottom:18px;
+  }
+  .brand .mark{
+    width:38px; height:38px; border-radius:12px;
+    background:linear-gradient(135deg,var(--violet),var(--pink));
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; font-family:'Poppins',sans-serif; font-weight:800; font-size:15px;
+    flex:none;
+  }
+  .brand .name{ font-size:13px; font-weight:600; color:var(--ink-soft); letter-spacing:.2px; }
+
+  /* ---------- Intro screen ---------- */
+  #screen-intro h1{
+    font-size:26px; line-height:1.25; font-weight:800; margin:6px 0 10px;
+  }
+  #screen-intro p{
+    font-size:14.5px; line-height:1.6; color:var(--ink-soft); margin:0 0 22px;
+  }
+  .pill-row{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:22px; }
+  .pill{
+    font-size:12.5px; font-weight:600; padding:7px 12px; border-radius:999px;
+    background:var(--paper-dim); color:var(--violet);
+  }
+
+  /* ---------- Buttons ---------- */
+  .btn{
+    appearance:none; border:none; cursor:pointer;
+    font-family:'Poppins',sans-serif; font-weight:700; font-size:15px;
+    border-radius:16px; padding:15px 20px;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease;
+  }
+  .btn:active{ transform: scale(0.97); }
+  .btn-primary{
+    background:linear-gradient(135deg,var(--violet),var(--pink));
+    color:#fff; width:100%;
+    box-shadow:0 14px 26px -10px rgba(255,93,168,0.55);
+  }
+  .btn-primary:disabled{ opacity:.45; cursor:not-allowed; box-shadow:none; }
+  .btn-ghost{
+    background:var(--paper-dim); color:var(--ink); flex:1;
+  }
+  .btn-row{ display:flex; gap:10px; margin-top:22px; }
+  .btn-row .btn-primary{ flex:2; }
+
+  /* ---------- Progress ---------- */
+  .progress-wrap{ margin-bottom:20px; }
+  .progress-top{
+    display:flex; justify-content:space-between; align-items:baseline;
+    font-size:12.5px; font-weight:600; color:var(--ink-soft); margin-bottom:8px;
+  }
+  .progress-top span.count{ color:var(--violet); font-weight:700; }
+  .progress-track{
+    height:8px; background:var(--paper-dim); border-radius:999px; overflow:hidden;
+  }
+  .progress-fill{
+    height:100%; border-radius:999px;
+    background:linear-gradient(90deg,var(--cyan),var(--violet),var(--pink));
+    transition: width .45s cubic-bezier(.65,0,.35,1);
+  }
+
+  /* ---------- Question ---------- */
+  #screen-quiz .qnum{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:30px; height:30px; border-radius:10px;
+    background:var(--paper-dim); color:var(--violet);
+    font-family:'Poppins',sans-serif; font-weight:800; font-size:13px;
+    margin-bottom:12px;
+  }
+  #screen-quiz h2{
+    font-size:19.5px; line-height:1.4; font-weight:700; margin:0 0 18px;
+  }
+
+  .field{ margin-bottom:6px; }
+  input[type=text], input[type=tel], textarea{
+    width:100%; font-family:'Inter',sans-serif; font-size:15px;
+    padding:14px 16px; border-radius:14px; border:1.5px solid #E7E2FA;
+    background:var(--paper-dim); color:var(--ink);
+    outline:none; transition:border-color .15s ease, background .15s ease;
+  }
+  textarea{ min-height:96px; resize:vertical; line-height:1.5; }
+  input[type=text]:focus, input[type=tel]:focus, textarea:focus{
+    border-color:var(--violet); background:#fff;
+  }
+
+  .option-list{ display:flex; flex-direction:column; gap:10px; }
+  .option{
+    display:flex; align-items:center; gap:12px;
+    padding:13px 15px; border-radius:15px; border:1.5px solid #E7E2FA;
+    background:var(--paper-dim); cursor:pointer;
+    font-size:14.5px; font-weight:500;
+    transition: transform .12s ease, border-color .12s ease, background .12s ease;
+  }
+  .option:active{ transform: scale(0.98); }
+  .option .check{
+    flex:none; width:20px; height:20px; border-radius:7px; border:2px solid #D8D0F7;
+    background:#fff; display:flex; align-items:center; justify-content:center;
+    transition: border-color .12s ease, background .12s ease;
+  }
+  .option.radio-type .check{ border-radius:999px; }
+  .option .check svg{ opacity:0; transform:scale(.6); transition: opacity .12s ease, transform .12s ease; }
+  .option.selected{
+    border-color:var(--violet); background:#F1ECFF;
+  }
+  .option.selected .check{ background:linear-gradient(135deg,var(--violet),var(--pink)); border-color:transparent; }
+  .option.selected .check svg{ opacity:1; transform:scale(1); }
+
+  .other-box{
+    margin-top:2px; margin-bottom:10px; animation: reveal .2s ease;
+  }
+  @keyframes reveal{ from{ opacity:0; transform:translateY(-4px);} to{opacity:1; transform:translateY(0);} }
+
+  .hint{ font-size:12.5px; color:var(--ink-soft); margin:10px 2px 0; }
+  .error-msg{
+    font-size:12.5px; color:var(--danger); font-weight:600; margin:10px 2px 0; display:none;
+  }
+  .shake{ animation: shake .35s; }
+  @keyframes shake{
+    10%,90%{ transform: translateX(-2px); }
+    20%,80%{ transform: translateX(4px); }
+    30%,50%,70%{ transform: translateX(-7px); }
+    40%,60%{ transform: translateX(7px); }
+  }
+
+  /* ---------- Slide transition between questions ---------- */
+  .q-slide-enter{ animation: slideIn .32s cubic-bezier(.25,.8,.35,1); }
+  @keyframes slideIn{
+    from{ opacity:0; transform: translateX(18px); }
+    to{ opacity:1; transform: translateX(0); }
+  }
+
+  /* ---------- Loading ---------- */
+  #screen-loading{ text-align:center; padding:30px 10px; }
+  .spinner{
+    width:42px; height:42px; margin:0 auto 16px;
+    border-radius:50%; border:4px solid var(--paper-dim); border-top-color:var(--violet);
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+  #screen-loading p{ color:var(--ink-soft); font-size:14px; }
+
+  /* ---------- Done screen ---------- */
+  #screen-done{ text-align:center; padding:14px 4px 6px; }
+  .check-badge{
+    width:72px; height:72px; border-radius:50%; margin:0 auto 18px;
+    background:linear-gradient(135deg,var(--cyan),var(--violet));
+    display:flex; align-items:center; justify-content:center;
+    animation: pop .5s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes pop{ 0%{ transform:scale(0);} 70%{ transform:scale(1.12);} 100%{ transform:scale(1);} }
+  #screen-done h1{ font-size:22px; margin:0 0 10px; }
+  #screen-done p{ font-size:14.5px; color:var(--ink-soft); line-height:1.6; margin:0; }
+
+  .confetti-piece{
+    position:fixed; top:-10px; width:9px; height:14px; z-index:5;
+    animation: fall linear forwards; pointer-events:none; border-radius:2px;
+  }
+  @keyframes fall{
+    to{ transform: translateY(110vh) rotate(540deg); opacity:.9; }
+  }
+
+  .hidden{ display:none !important; }
+
+  footer{
+    text-align:center; margin-top:16px; font-size:11.5px; color:var(--ink-soft); opacity:.75;
+  }
+</style>
 </head>
-<body class="bg-slate-50 text-slate-800 antialiased min-h-screen pb-16">
+<body>
 
-  <!-- Header Banner -->
-  <header class="bg-gradient-to-r from-blue-700 to-indigo-800 text-white py-10 px-4 shadow-sm">
-    <div class="max-w-2xl mx-auto text-center">
-      <span class="inline-block px-3 py-1 bg-white/10 rounded-full text-xs font-semibold tracking-wider uppercase mb-3">Kuesioner Resmi</span>
-      <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">Tracer Study Mahasiswa</h1>
-      <p class="text-blue-100 text-sm sm:text-base mt-2">Bantu kami meningkatkan kualitas akademik dan layanan dengan mengisi survei ini.</p>
-    </div>
-  </header>
+<div class="blob-field">
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+  <div class="blob b4"></div>
+</div>
 
-  <main class="max-w-2xl mx-auto px-4 -mt-4">
-    <!-- State Loading -->
-    <div id="loading" class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-8 text-center">
-      <div class="inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
-      <p class="text-slate-500 text-sm font-medium">Memuat daftar pertanyaan...</p>
+<div class="app">
+  <div class="card">
+    <div class="brand">
+      <div class="mark">IA</div>
+      <div class="name">Institut Asia · Tracer Studi</div>
     </div>
 
-    <!-- Form Utama -->
-    <form id="tracerForm" class="hidden space-y-5" onsubmit="handleSubmit(event)">
-      <div id="questionContainer" class="space-y-5"></div>
-
-      <!-- Tombol Submit -->
-      <div class="pt-4">
-        <button type="submit" id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold py-3.5 px-6 rounded-xl shadow-md transition duration-150 flex items-center justify-center gap-2">
-          <span>Kirim Jawaban</span>
-        </button>
+    <!-- INTRO -->
+    <div id="screen-intro">
+      <h1>Yuk, cerita bareng kita! 👋</h1>
+      <p>Bantu Institut Asia kenal kamu lebih baik — dari asal kota sampai gimana kamu akhirnya milih kuliah di sini. Jawaban kamu <strong>anonim</strong> &amp; cuma dipakai buat riset internal kampus.</p>
+      <div class="pill-row">
+        <span class="pill">⏱ ±5 menit</span>
+        <span class="pill">🔒 Rahasia</span>
+        <span class="pill">✨ Santai aja</span>
       </div>
-    </form>
-
-    <!-- Modal Status Sukses -->
-    <div id="successModal" class="hidden bg-white rounded-2xl shadow-lg border border-slate-200/80 p-8 text-center my-8 slide-in">
-      <div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">✓</div>
-      <h2 class="text-xl font-bold text-slate-800 mb-2">Terima Kasih!</h2>
-      <p class="text-slate-600 text-sm mb-6">Data survei kamu berhasil disimpan.</p>
-      <button onclick="window.location.reload()" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-semibold transition">Isi Form Lagi</button>
+      <button class="btn btn-primary" id="btn-start">Mulai Isi</button>
     </div>
-  </main>
 
-  <script>
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwke-xlaq2SSnRLrqjoElvLoRAlzt6KR7RcVFVf5_qIVkUPcdHYf1pLAfu-bz9F1WEuSQ/exec';
-    
-    let questionsData = [];
-    let followupsData = {};
+    <!-- LOADING -->
+    <div id="screen-loading" class="hidden">
+      <div class="spinner"></div>
+      <p id="loading-text">Menyiapkan pertanyaan…</p>
+    </div>
 
-    document.addEventListener('DOMContentLoaded', async () => {
-      try {
-        const res = await fetch(`${SCRIPT_URL}?action=getQuestions`);
-        const json = await res.json();
-        if (json.ok) {
-          questionsData = json.questions;
-          followupsData = json.followups || {};
-          renderAllQuestions();
-          document.getElementById('loading').classList.add('hidden');
-          document.getElementById('tracerForm').classList.remove('hidden');
-        } else {
-          showError('Gagal memuat soal: ' + json.error);
-        }
-      } catch (err) {
-        showError('Gagal tersambung ke server. Pastikan Web App terbuka publik.');
+    <!-- QUIZ -->
+    <div id="screen-quiz" class="hidden">
+      <div class="progress-wrap">
+        <div class="progress-top">
+          <span>Yuk lanjut</span>
+          <span class="count" id="progress-count">1 / 16</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      </div>
+
+      <div id="question-slot"></div>
+
+      <div class="error-msg" id="error-msg">Yuk isi dulu ya, jangan dilewat 🙏</div>
+
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="btn-back">Kembali</button>
+        <button class="btn btn-primary" id="btn-next">Lanjut</button>
+      </div>
+    </div>
+
+    <!-- DONE -->
+    <div id="screen-done" class="hidden">
+      <div class="check-badge">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <h1>Makasih banyak! 🎉</h1>
+      <p>Ceritamu udah kesimpan. Data ini bakal bantu Institut Asia jadi lebih ngerti kebutuhan mahasiswanya. Sampai ketemu di kampus!</p>
+    </div>
+
+  </div>
+  <footer>Institut Asia — Kuliah Asik Kekinian</footer>
+</div>
+
+<script>
+/* ====================== KONFIGURASI ======================
+   Ganti URL di bawah dengan URL Web App hasil deploy Apps Script kamu.
+   Contoh: https://script.google.com/macros/s/AKfycb.../exec
+=========================================================== */
+const CONFIG = {
+  APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwke-xlaq2SSnRLrqjoElvLoRAlzt6KR7RcVFVf5_qIVkUPcdHYf1pLAfu-bz9F1WEuSQ/exec'
+};
+
+let state = {
+  questions: [],
+  followups: {},     // parentNo -> template pertanyaan lanjutan
+  index: 0,
+  mode: 'primary',    // 'primary' | 'sub'
+  pending: [],         // daftar pertanyaan lanjutan aktif (mode 'sub')
+  subIndex: 0,
+  answers: {},         // no -> string | string[]
+  otherText: {},        // "no|optionLabel" -> string
+  registry: {}           // no -> objek pertanyaan yang pernah dirender (buat submit)
+};
+
+const el = (id) => document.getElementById(id);
+const screens = {
+  intro: el('screen-intro'),
+  loading: el('screen-loading'),
+  quiz: el('screen-quiz'),
+  done: el('screen-done')
+};
+
+function showScreen(name){
+  Object.values(screens).forEach(s => s.classList.add('hidden'));
+  screens[name].classList.remove('hidden');
+}
+
+el('btn-start').addEventListener('click', startQuiz);
+el('btn-back').addEventListener('click', goBack);
+el('btn-next').addEventListener('click', goNext);
+
+async function startQuiz(){
+  showScreen('loading');
+  try{
+    const res = await fetch(CONFIG.APPS_SCRIPT_URL + '?action=getQuestions');
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.error || 'Gagal memuat soal');
+    state.questions = data.questions;
+    state.followups = data.followups || {};
+    state.index = 0;
+    state.mode = 'primary';
+    state.pending = [];
+    state.subIndex = 0;
+    showScreen('quiz');
+    renderQuestion();
+  }catch(err){
+    el('loading-text').textContent = 'Gagal memuat pertanyaan. Cek koneksi lalu coba lagi.';
+    setTimeout(() => { showScreen('intro'); }, 1800);
+  }
+}
+
+function currentQuestion(){
+  return state.mode === 'sub' ? state.pending[state.subIndex] : state.questions[state.index];
+}
+
+function cleanLabel(label){
+  return String(label).replace(/\s*\(.*?\)\s*/g,'').replace(/[…]+$/,'').trim();
+}
+
+function renderQuestion(){
+  const q = currentQuestion();
+  state.registry[q.no] = q; // ingat pertanyaan ini biar bisa dipakai pas submit
+
+  const baseTotal = state.questions.length;
+  const total = baseTotal + (state.mode === 'sub' ? state.pending.length : 0);
+  const stepNumber = state.mode === 'sub'
+    ? (state.index + 1) + (state.subIndex + 1)
+    : (state.index + 1);
+  el('progress-count').textContent = stepNumber + ' / ' + total;
+  el('progress-fill').style.width = Math.min(100, Math.round((stepNumber/total)*100)) + '%';
+  el('error-msg').style.display = 'none';
+
+  const slot = el('question-slot');
+  slot.classList.remove('q-slide-enter');
+  void slot.offsetWidth; // reflow buat restart animasi
+  slot.classList.add('q-slide-enter');
+
+  let html = '<div class="qnum">' + stepNumber + '</div><h2>' + escapeHtml(q.text) + '</h2>';
+
+  if(q.type === 'text' || q.type === 'tel'){
+    const val = state.answers[q.no] || '';
+    html += '<div class="field"><input type="' + (q.type==='tel'?'tel':'text') + '" id="input-field" placeholder="Jawaban kamu…" value="' + escapeAttr(val) + '"></div>';
+  } else if(q.type === 'textarea'){
+    const val = state.answers[q.no] || '';
+    html += '<div class="field"><textarea id="input-field" placeholder="Tulis santai aja…">' + escapeHtml(val) + '</textarea></div>';
+  } else if(q.type === 'radio' || q.type === 'checkbox'){
+    const isMulti = q.type === 'checkbox';
+    const selected = state.answers[q.no];
+    const selectedSet = new Set(isMulti ? (selected || []) : (selected ? [selected] : []));
+    html += '<div class="option-list">';
+    q.options.forEach((opt, i) => {
+      const isSel = selectedSet.has(opt.label);
+      html += '<div class="option ' + (isMulti?'':'radio-type') + (isSel?' selected':'') + '" data-label="' + escapeAttr(opt.label) + '" data-i="' + i + '">' +
+        '<span class="check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>' +
+        '<span>' + escapeHtml(opt.label) + '</span></div>';
+      if(opt.hasOther){
+        const key = q.no + '|' + opt.label;
+        const shown = isSel;
+        html += '<div class="other-box ' + (shown?'':'hidden') + '" id="other-' + i + '">' +
+          '<input type="text" data-key="' + escapeAttr(key) + '" placeholder="Tuliskan di sini…" value="' + escapeAttr(state.otherText[key]||'') + '"></div>';
       }
     });
+    html += '</div>';
+  }
 
-    function showError(msg) {
-      document.getElementById('loading').innerHTML = `
-        <div class="text-rose-500 font-semibold mb-2">Terjadi Kesalahan</div>
-        <div class="text-slate-500 text-sm mb-4">${msg}</div>
-        <button onclick="window.location.reload()" class="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg">Coba Lagi</button>
-      `;
-    }
+  if(q.required){
+    html += '<div class="hint">Wajib diisi</div>';
+  } else {
+    html += '<div class="hint">Boleh dilewati</div>';
+  }
 
-    function renderAllQuestions() {
-      const container = document.getElementById('questionContainer');
-      container.innerHTML = '';
+  slot.innerHTML = html;
+  attachQuestionEvents(q);
+  const atStart = state.mode === 'primary' && state.index === 0;
+  el('btn-back').disabled = atStart;
+  el('btn-back').style.opacity = atStart ? .4 : 1;
+  const atEnd = state.mode === 'primary'
+    ? state.index === baseTotal - 1
+    : (state.index === baseTotal - 1 && state.subIndex === state.pending.length - 1);
+  el('btn-next').textContent = atEnd ? 'Kirim' : 'Lanjut';
+}
 
-      questionsData.forEach((q) => {
-        const card = document.createElement('div');
-        card.className = 'bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200/80';
-        card.id = `card-q-${q.no}`;
+function attachQuestionEvents(q){
+  if(q.type === 'text' || q.type === 'tel' || q.type === 'textarea'){
+    el('input-field').addEventListener('input', (e) => {
+      state.answers[q.no] = e.target.value;
+    });
+  } else if(q.type === 'radio' || q.type === 'checkbox'){
+    const isMulti = q.type === 'checkbox';
+    document.querySelectorAll('.option').forEach(node => {
+      node.addEventListener('click', () => {
+        const label = node.dataset.label;
+        const i = node.dataset.i;
+        const opt = q.options[i];
 
-        const reqBadge = q.required 
-          ? '<span class="text-rose-500 font-bold ml-0.5">*</span>' 
-          : '<span class="text-slate-400 text-xs font-normal ml-1">(opsional)</span>';
-
-        let inputHtml = '';
-
-        if (q.type === 'text' || q.type === 'tel') {
-          inputHtml = `
-            <input type="${q.type}" name="q_${q.no}" ${q.required ? 'required' : ''} 
-              class="w-full mt-3 px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm placeholder-slate-400" 
-              placeholder="Ketik jawabanmu di sini..." />
-          `;
-        } else if (q.type === 'textarea') {
-          inputHtml = `
-            <textarea name="q_${q.no}" rows="3" ${q.required ? 'required' : ''}
-              class="w-full mt-3 px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm placeholder-slate-400" 
-              placeholder="Ketik jawabanmu di sini..."></textarea>
-          `;
-        } else if (q.type === 'radio') {
-          inputHtml = `
-            <div class="space-y-2 mt-3.5">
-              ${q.options.map((opt, idx) => `
-                <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer text-sm text-slate-700 transition">
-                  <input type="radio" name="q_${q.no}" value="${opt.label}" ${q.required && idx === 0 ? 'required' : ''}
-                    onchange="handleParentRadioChange('${q.no}', '${opt.label.replace(/'/g, "\\'")}', ${opt.hasOther})" 
-                    class="w-4 h-4 text-blue-600 focus:ring-blue-500" />
-                  <span class="flex-1">${opt.label}</span>
-                </label>
-              `).join('')}
-              <div id="other-input-${q.no}" class="hidden mt-2">
-                <input type="text" id="other-val-${q.no}" placeholder="Sebutkan di sini..." 
-                  class="w-full px-4 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-            </div>
-            <!-- Wadah Follow-Up (11b, 12b, 13b) -->
-            <div id="followup-container-${q.no}" class="mt-4 hidden slide-in"></div>
-          `;
-        } else if (q.type === 'checkbox') {
-          inputHtml = `
-            <div class="space-y-2 mt-3.5">
-              ${q.options.map((opt) => `
-                <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer text-sm text-slate-700 transition">
-                  <input type="checkbox" name="q_${q.no}" value="${opt.label}" 
-                    onchange="handleCheckboxChange('${q.no}',${opt.hasOther}, this)"
-                    class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" />
-                  <span class="flex-1">${opt.label}</span>
-                </label>
-              `).join('')}
-              <div id="other-input-${q.no}" class="hidden mt-2">
-                <input type="text" id="other-val-${q.no}" placeholder="Sebutkan di sini..." 
-                  class="w-full px-4 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-            </div>
-          `;
-        }
-
-        card.innerHTML = `
-          <div class="text-sm font-semibold text-slate-800 leading-snug">
-            <span class="text-blue-600 mr-1">${q.no}.</span> ${q.text} ${reqBadge}
-          </div>
-          ${inputHtml}
-        `;
-
-        container.appendChild(card);
-      });
-    }
-
-    // Handler ketika opsi Radio pada soal induk dipilih
-    function handleParentRadioChange(parentNo, selectedValue, hasOther) {
-      // Toggle input isian tambahan "Lainnya"
-      const otherContainer = document.getElementById(`other-input-${parentNo}`);
-      if (otherContainer) {
-        if (hasOther) {
-          otherContainer.classList.remove('hidden');
+        if(isMulti){
+          let arr = state.answers[q.no] || [];
+          if(arr.includes(label)){
+            arr = arr.filter(x => x !== label);
+            node.classList.remove('selected');
+          } else {
+            arr = arr.concat([label]);
+            node.classList.add('selected');
+          }
+          state.answers[q.no] = arr;
         } else {
-          otherContainer.classList.add('hidden');
-          const input = document.getElementById(`other-val-${parentNo}`);
-          if (input) input.value = '';
+          document.querySelectorAll('.option').forEach(n => n.classList.remove('selected'));
+          node.classList.add('selected');
+          state.answers[q.no] = label;
+          document.querySelectorAll('.other-box').forEach(b => {
+            if(b.id !== 'other-' + i) b.classList.add('hidden');
+          });
         }
-      }
 
-      // Render pertanyaan lanjutan jika ada follow-up template
-      const followupContainer = document.getElementById(`followup-container-${parentNo}`);
-      if (!followupContainer) return;
+        if(opt.hasOther){
+          const box = el('other-' + i);
+          const nowSelected = node.classList.contains('selected');
+          box.classList.toggle('hidden', !nowSelected);
+        }
+      });
+    });
+    document.querySelectorAll('.other-box input').forEach(inp => {
+      inp.addEventListener('input', (e) => {
+        state.otherText[e.target.dataset.key] = e.target.value;
+      });
+    });
+  }
+}
 
-      const template = followupsData[String(parentNo).trim()];
-      if (!template) {
-        followupContainer.classList.add('hidden');
-        followupContainer.innerHTML = '';
+function goBack(){
+  if(state.mode === 'sub'){
+    if(state.subIndex === 0){
+      state.mode = 'primary';
+      state.pending = [];
+      state.subIndex = 0;
+    } else {
+      state.subIndex -= 1;
+    }
+    renderQuestion();
+    return;
+  }
+  if(state.index === 0) return;
+  state.index -= 1;
+  renderQuestion();
+}
+
+/** Bikin daftar pertanyaan lanjutan (satu per pilihan yang dicentang) dari template. */
+function buildPendingFollowups(q, template){
+  const selected = q.type === 'checkbox'
+    ? (state.answers[q.no] || [])
+    : (state.answers[q.no] ? [state.answers[q.no]] : []);
+
+  return selected.map(label => {
+    const opt = q.options.find(o => o.label === label);
+    let displayName = label;
+    if(opt && opt.hasOther){
+      const key = q.no + '|' + label;
+      const custom = (state.otherText[key] || '').trim();
+      displayName = custom || cleanLabel(label);
+    }
+    return {
+      no: q.no + '|' + label,
+      text: template.text.replace('{pilihan}', displayName),
+      type: template.type,
+      options: template.options,
+      required: template.required,
+      isSub: true,
+      parentNo: q.no
+    };
+  });
+}
+
+function goNext(){
+  const q = currentQuestion();
+  if(!validateCurrent(q)){
+    el('error-msg').style.display = 'block';
+    el('question-slot').classList.add('shake');
+    setTimeout(() => el('question-slot').classList.remove('shake'), 400);
+    return;
+  }
+  el('error-msg').style.display = 'none';
+
+  // Kalau baru selesai jawab pertanyaan utama & ada template follow-up buat pertanyaan ini
+  if(state.mode === 'primary'){
+    const template = state.followups[q.no];
+    if(template && (q.type === 'checkbox' || q.type === 'radio')){
+      const pending = buildPendingFollowups(q, template);
+      if(pending.length > 0){
+        state.pending = pending;
+        state.subIndex = 0;
+        state.mode = 'sub';
+        renderQuestion();
         return;
       }
-
-      // Format teks pertanyaan follow-up
-      let qText = template.text.replace(/\{pilihan\}/gi, selectedValue);
-      const reqBadge = template.required 
-        ? '<span class="text-rose-500 font-bold ml-0.5">*</span>' 
-        : '<span class="text-slate-400 text-xs font-normal ml-1">(opsional)</span>';
-
-      followupContainer.innerHTML = `
-        <div class="p-4 bg-slate-50/90 rounded-xl border border-slate-200/90">
-          <div class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-blue-600"></span> Pertanyaan Lanjutan
-          </div>
-          <p class="text-sm font-semibold text-slate-800 mb-3">${qText} ${reqBadge}</p>
-          <div class="space-y-2">
-            ${template.options.map((opt, idx) => `
-              <label class="flex items-center gap-3 p-2.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer text-sm text-slate-700">
-                <input type="radio" name="followup_${parentNo}" value="${opt.label}" ${template.required && idx === 0 ? 'required' : ''}
-                  data-parent-val="${selectedValue.replace(/"/g, '&quot;')}"
-                  class="w-4 h-4 text-blue-600 focus:ring-blue-500" />
-                <span>${opt.label}</span>
-              </label>
-            `).join('')}
-          </div>
-        </div>
-      `;
-      followupContainer.classList.remove('hidden');
     }
+  }
 
-    function handleCheckboxChange(parentNo, hasOther, el) {
-      const otherContainer = document.getElementById(`other-input-${parentNo}`);
-      if (hasOther && otherContainer) {
-        if (el.checked) {
-          otherContainer.classList.remove('hidden');
-        } else {
-          otherContainer.classList.add('hidden');
-          const input = document.getElementById(`other-val-${parentNo}`);
-          if (input) input.value = '';
-        }
-      }
+  if(state.mode === 'sub'){
+    if(state.subIndex < state.pending.length - 1){
+      state.subIndex += 1;
+      renderQuestion();
+      return;
     }
+    // selesai semua follow-up, balik ke alur utama
+    state.mode = 'primary';
+    state.pending = [];
+    state.subIndex = 0;
+  }
 
-    async function handleSubmit(e) {
-      e.preventDefault();
-      const submitBtn = document.getElementById('submitBtn');
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = `
-        <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-        <span>Menyimpan Jawaban...</span>
-      `;
+  if(state.index === state.questions.length - 1){
+    submitAnswers();
+  } else {
+    state.index += 1;
+    renderQuestion();
+  }
+}
 
-      const answers = {};
-      const labels = {};
+function validateCurrent(q){
+  if(!q.required) return true;
+  const val = state.answers[q.no];
+  if(q.type === 'checkbox'){
+    if(!val || val.length === 0) return false;
+  } else {
+    if(!val || String(val).trim() === '') return false;
+  }
+  return true;
+}
 
-      questionsData.forEach((q) => {
-        const key = String(q.no);
-        labels[key] = `${q.no}. ${q.text}`;
+function buildFinalValue(q){
+  const val = state.answers[q.no];
+  if(q.type === 'checkbox'){
+    const arr = val || [];
+    return arr.map(label => appendOtherIfNeeded(q, label));
+  } else if(q.type === 'radio'){
+    if(!val) return '';
+    return appendOtherIfNeeded(q, val);
+  }
+  return val || '';
+}
 
-        if (q.type === 'text' || q.type === 'tel' || q.type === 'textarea') {
-          const input = document.querySelector(`[name="q_${key}"]`);
-          answers[key] = input ? input.value.trim() : '';
-        } else if (q.type === 'radio') {
-          const checked = document.querySelector(`[name="q_${key}"]:checked`);
-          let val = checked ? checked.value : '';
-          const otherInput = document.getElementById(`other-val-${key}`);
-          if (otherInput && otherInput.value.trim()) {
-            val += ` (${otherInput.value.trim()})`;
-          }
-          answers[key] = val;
+function appendOtherIfNeeded(q, label){
+  const opt = q.options.find(o => o.label === label);
+  if(opt && opt.hasOther){
+    const key = q.no + '|' + label;
+    const extra = (state.otherText[key] || '').trim();
+    if(extra) return label + ': ' + extra;
+  }
+  return label;
+}
 
-          // Ambil jawaban follow-up jika terisi
-          const followupChecked = document.querySelector(`[name="followup_${key}"]:checked`);
-          if (followupChecked) {
-            const template = followupsData[key];
-            const followupKey = `${key}|${followupChecked.getAttribute('data-parent-val')}`;
-            const followupNo = template.no || `${key}b`;
-            
-            answers[followupKey] = followupChecked.value;
-            labels[followupKey] = `${followupNo}. ${template.text}`;
-          }
-        } else if (q.type === 'checkbox') {
-          const checked = Array.from(document.querySelectorAll(`[name="q_${key}"]:checked`)).map(c => c.value);
-          const otherInput = document.getElementById(`other-val-${key}`);
-          if (otherInput && otherInput.value.trim()) {
-            checked.push(`Lainnya: ${otherInput.value.trim()}`);
-          }
-          answers[key] = checked;
-        }
-      });
+async function submitAnswers(){
+  showScreen('loading');
+  el('loading-text').textContent = 'Menyimpan jawaban kamu…';
 
-      try {
-        await fetch(SCRIPT_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ answers, labels })
-        });
-
-        document.getElementById('tracerForm').classList.add('hidden');
-        document.getElementById('successModal').classList.remove('hidden');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } catch (err) {
-        alert('Terjadi kesalahan saat mengirim jawaban. Silakan coba lagi.');
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<span>Kirim Jawaban</span>';
-      }
+  const payload = { answers: {}, labels: {} };
+  Object.keys(state.registry).forEach(no => {
+    const q = state.registry[no];
+    payload.answers[no] = buildFinalValue(q);
+    if(q.isSub){
+      payload.labels[no] = q.parentNo + '. ' + q.text;
     }
-  </script>
+  });
+
+  try{
+    await fetch(CONFIG.APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+    showScreen('done');
+    launchConfetti();
+  }catch(err){
+    el('loading-text').textContent = 'Gagal mengirim. Cek koneksi lalu coba lagi.';
+    setTimeout(() => { showScreen('quiz'); }, 1800);
+  }
+}
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+}
+function escapeAttr(str){ return escapeHtml(str); }
+
+function launchConfetti(){
+  const colors = ['#6C4EF5','#FF5DA8','#33D6FF','#FFC93C'];
+  for(let i=0;i<60;i++){
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = Math.random()*100 + 'vw';
+    piece.style.background = colors[i % colors.length];
+    piece.style.animationDuration = (2.4 + Math.random()*1.6) + 's';
+    piece.style.animationDelay = (Math.random()*0.6) + 's';
+    document.body.appendChild(piece);
+    setTimeout(() => piece.remove(), 4500);
+  }
+}
+</script>
 </body>
 </html>
