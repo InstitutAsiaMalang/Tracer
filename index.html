@@ -188,6 +188,17 @@
   .other-box{
     margin-top:2px; margin-bottom:10px; animation: reveal .2s ease;
   }
+  
+  /* Box khusus isian angka penghasilan inline */
+  .inline-followup-box{
+    margin-top:16px; padding:16px; border-radius:16px;
+    background: #F4F1FE; border: 1.5px dashed var(--violet);
+    animation: reveal .25s ease;
+  }
+  .inline-followup-box label{
+    display:block; font-size:13px; font-weight:700; color:var(--violet); margin-bottom:8px;
+  }
+
   @keyframes reveal{ from{ opacity:0; transform:translateY(-4px);} to{opacity:1; transform:translateY(0);} }
 
   .hint{ font-size:12.5px; color:var(--ink-soft); margin:10px 2px 0; }
@@ -202,7 +213,6 @@
     40%,60%{ transform: translateX(7px); }
   }
 
-  /* ---------- Slide transition between questions ---------- */
   .q-slide-enter{ animation: slideIn .32s cubic-bezier(.25,.8,.35,1); }
   @keyframes slideIn{
     from{ opacity:0; transform: translateX(18px); }
@@ -322,12 +332,10 @@ let state = {
   questions: [],
   followups: {},     // parentNo -> template pertanyaan lanjutan
   index: 0,
-  mode: 'primary',    // 'primary' | 'sub'
-  pending: [],         // daftar pertanyaan lanjutan aktif (mode 'sub')
-  subIndex: 0,
   answers: {},         // no -> string | string[]
+  followupAnswers: {}, // parentNo -> nominal angka penghasilan
   otherText: {},        // "no|optionLabel" -> string
-  registry: {}           // no -> objek pertanyaan yang pernah dirender
+  registry: {}
 };
 
 const el = (id) => document.getElementById(id);
@@ -354,13 +362,11 @@ async function startQuiz(){
     const data = await res.json();
     if(!data.ok) throw new Error(data.error || 'Gagal memuat soal');
     
-    // Pastikan nomor soal selalu berupa string yang bersih
     state.questions = (data.questions || []).map(q => {
       q.no = String(q.no).trim();
       return q;
     });
 
-    // Normalisasi key followups ke format String
     state.followups = {};
     if(data.followups){
       Object.keys(data.followups).forEach(key => {
@@ -369,9 +375,6 @@ async function startQuiz(){
     }
 
     state.index = 0;
-    state.mode = 'primary';
-    state.pending = [];
-    state.subIndex = 0;
     showScreen('quiz');
     renderQuestion();
   }catch(err){
@@ -381,22 +384,29 @@ async function startQuiz(){
 }
 
 function currentQuestion(){
-  return state.mode === 'sub' ? state.pending[state.subIndex] : state.questions[state.index];
+  return state.questions[state.index];
 }
 
-function cleanLabel(label){
-  return String(label).replace(/\s*\(.*?\)\s*/g,'').replace(/[…]+$/,'').trim();
+function formatRupiahInput(val) {
+  let number_string = val.replace(/[^,\d]/g, '').toString();
+  let split = number_string.split(',');
+  let sisa = split[0].length % 3;
+  let rupiah = split[0].substr(0, sisa);
+  let ribuan = split[0].substr(sisa).match(/\d{3}/gi);
+
+  if (ribuan) {
+    let separator = sisa ? '.' : '';
+    rupiah += separator + ribuan.join('.');
+  }
+  return split[1] != undefined ? rupiah + ',' + split[1] : rupiah;
 }
 
 function renderQuestion(){
   const q = currentQuestion();
   state.registry[q.no] = q;
 
-  const baseTotal = state.questions.length;
-  const total = baseTotal + (state.mode === 'sub' ? state.pending.length : 0);
-  const stepNumber = state.mode === 'sub'
-    ? (state.index + 1) + (state.subIndex + 1)
-    : (state.index + 1);
+  const total = state.questions.length;
+  const stepNumber = state.index + 1;
   el('progress-count').textContent = stepNumber + ' / ' + total;
   el('progress-fill').style.width = Math.min(100, Math.round((stepNumber/total)*100)) + '%';
   el('error-msg').style.display = 'none';
@@ -418,12 +428,14 @@ function renderQuestion(){
     const isMulti = q.type === 'checkbox';
     const selected = state.answers[q.no];
     const selectedSet = new Set(isMulti ? (selected || []) : (selected ? [selected] : []));
+    
     html += '<div class="option-list">';
     q.options.forEach((opt, i) => {
       const isSel = selectedSet.has(opt.label);
       html += '<div class="option ' + (isMulti?'':'radio-type') + (isSel?' selected':'') + '" data-label="' + escapeAttr(opt.label) + '" data-i="' + i + '">' +
         '<span class="check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>' +
         '<span>' + escapeHtml(opt.label) + '</span></div>';
+      
       if(opt.hasOther){
         const key = q.no + '|' + opt.label;
         const shown = isSel;
@@ -432,6 +444,19 @@ function renderQuestion(){
       }
     });
     html += '</div>';
+
+    // Wadah input lanjutan inline untuk penghasilan (jika ada template follow-up)
+    const hasFollowup = !!state.followups[q.no];
+    if(hasFollowup){
+      const tpl = state.followups[q.no];
+      const isVisible = !!state.answers[q.no];
+      const prevVal = state.followupAnswers[q.no] || '';
+      
+      html += '<div class="inline-followup-box ' + (isVisible ? '' : 'hidden') + '" id="inline-followup-' + q.no + '">';
+      html += '  <label>' + escapeHtml(tpl.text) + (tpl.required ? ' *' : ' (opsional)') + '</label>';
+      html += '  <input type="text" id="followup-input-' + q.no + '" placeholder="Contoh: 3.500.000" value="' + escapeAttr(prevVal) + '">';
+      html += '</div>';
+    }
   }
 
   if(q.required){
@@ -442,12 +467,11 @@ function renderQuestion(){
 
   slot.innerHTML = html;
   attachQuestionEvents(q);
-  const atStart = state.mode === 'primary' && state.index === 0;
+
+  const atStart = state.index === 0;
   el('btn-back').disabled = atStart;
   el('btn-back').style.opacity = atStart ? .4 : 1;
-  const atEnd = state.mode === 'primary'
-    ? state.index === baseTotal - 1
-    : (state.index === baseTotal - 1 && state.subIndex === state.pending.length - 1);
+  const atEnd = state.index === total - 1;
   el('btn-next').textContent = atEnd ? 'Kirim' : 'Lanjut';
 }
 
@@ -481,6 +505,14 @@ function attachQuestionEvents(q){
           document.querySelectorAll('.other-box').forEach(b => {
             if(b.id !== 'other-' + i) b.classList.add('hidden');
           });
+
+          // Munculkan isian follow up inline seketika setelah pilihan diklik
+          const inlineBox = el('inline-followup-' + q.no);
+          if(inlineBox){
+            inlineBox.classList.remove('hidden');
+            const inp = el('followup-input-' + q.no);
+            if(inp) inp.focus();
+          }
         }
 
         if(opt.hasOther){
@@ -490,57 +522,29 @@ function attachQuestionEvents(q){
         }
       });
     });
+
+    // Event listener input opsi "Lainnya"
     document.querySelectorAll('.other-box input').forEach(inp => {
       inp.addEventListener('input', (e) => {
         state.otherText[e.target.dataset.key] = e.target.value;
       });
     });
+
+    // Event listener input inline penghasilan
+    const followupInput = el('followup-input-' + q.no);
+    if(followupInput){
+      followupInput.addEventListener('input', (e) => {
+        e.target.value = formatRupiahInput(e.target.value);
+        state.followupAnswers[q.no] = e.target.value;
+      });
+    }
   }
 }
 
 function goBack(){
-  if(state.mode === 'sub'){
-    if(state.subIndex === 0){
-      state.mode = 'primary';
-      state.pending = [];
-      state.subIndex = 0;
-    } else {
-      state.subIndex -= 1;
-    }
-    renderQuestion();
-    return;
-  }
   if(state.index === 0) return;
   state.index -= 1;
   renderQuestion();
-}
-
-/** Bikin daftar pertanyaan lanjutan dari template */
-function buildPendingFollowups(q, template){
-  const selected = q.type === 'checkbox'
-    ? (state.answers[q.no] || [])
-    : (state.answers[q.no] ? [state.answers[q.no]] : []);
-
-  return selected.map(label => {
-    const opt = q.options.find(o => o.label === label);
-    let displayName = label;
-    if(opt && opt.hasOther){
-      const key = q.no + '|' + label;
-      const custom = (state.otherText[key] || '').trim();
-      displayName = custom || cleanLabel(label);
-    }
-    const cleanParentNo = String(q.no).trim();
-    return {
-      no: cleanParentNo + '|' + label,
-      text: template.text.replace(/\{pilihan\}/gi, displayName),
-      type: template.type || 'radio',
-      options: template.options,
-      required: template.required,
-      isSub: true,
-      parentNo: cleanParentNo,
-      chosenOption: label
-    };
-  });
 }
 
 function goNext(){
@@ -552,34 +556,6 @@ function goNext(){
     return;
   }
   el('error-msg').style.display = 'none';
-
-  // Cek apakah pertanyaan utama memiliki follow-up template
-  if(state.mode === 'primary'){
-    const qKey = String(q.no).trim();
-    const template = state.followups[qKey];
-    if(template && (q.type === 'checkbox' || q.type === 'radio')){
-      const pending = buildPendingFollowups(q, template);
-      if(pending.length > 0){
-        state.pending = pending;
-        state.subIndex = 0;
-        state.mode = 'sub';
-        renderQuestion();
-        return;
-      }
-    }
-  }
-
-  if(state.mode === 'sub'){
-    if(state.subIndex < state.pending.length - 1){
-      state.subIndex += 1;
-      renderQuestion();
-      return;
-    }
-    // Selesai pertanyaan lanjutan, kembali ke alur induk berikutnya
-    state.mode = 'primary';
-    state.pending = [];
-    state.subIndex = 0;
-  }
 
   if(state.index === state.questions.length - 1){
     submitAnswers();
@@ -597,6 +573,14 @@ function validateCurrent(q){
   } else {
     if(!val || String(val).trim() === '') return false;
   }
+
+  // Validasi jika follow-up diwajibkan
+  const tpl = state.followups[q.no];
+  if(tpl && tpl.required){
+    const fVal = state.followupAnswers[q.no];
+    if(!fVal || String(fVal).trim() === '') return false;
+  }
+
   return true;
 }
 
@@ -628,11 +612,21 @@ async function submitAnswers(){
   el('loading-text').textContent = 'Menyimpan jawaban kamu…';
 
   const payload = { answers: {}, labels: {} };
+
+  // Masukkan jawaban soal utama
   Object.keys(state.registry).forEach(no => {
     const q = state.registry[no];
     payload.answers[no] = buildFinalValue(q);
-    if(q.isSub){
-      payload.labels[no] = q.parentNo + 'b. ' + q.text;
+  });
+
+  // Masukkan jawaban isian follow-up langsung ke sheet sebagai nomor b (misal: 11b, 12b, 13b)
+  Object.keys(state.followupAnswers).forEach(parentNo => {
+    const val = state.followupAnswers[parentNo];
+    if(val && val.trim()){
+      const subKey = parentNo + 'b';
+      const tpl = state.followups[parentNo];
+      payload.answers[subKey] = 'Rp ' + val.trim();
+      payload.labels[subKey] = (tpl && tpl.no ? tpl.no : subKey) + '. ' + (tpl ? tpl.text : 'Penghasilan');
     }
   });
 
