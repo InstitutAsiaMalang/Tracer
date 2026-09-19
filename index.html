@@ -314,10 +314,6 @@
 </div>
 
 <script>
-/* ====================== KONFIGURASI ======================
-   Ganti URL di bawah dengan URL Web App hasil deploy Apps Script kamu.
-   Contoh: https://script.google.com/macros/s/AKfycb.../exec
-=========================================================== */
 const CONFIG = {
   APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwke-xlaq2SSnRLrqjoElvLoRAlzt6KR7RcVFVf5_qIVkUPcdHYf1pLAfu-bz9F1WEuSQ/exec'
 };
@@ -331,7 +327,7 @@ let state = {
   subIndex: 0,
   answers: {},         // no -> string | string[]
   otherText: {},        // "no|optionLabel" -> string
-  registry: {}           // no -> objek pertanyaan yang pernah dirender (buat submit)
+  registry: {}           // no -> objek pertanyaan yang pernah dirender
 };
 
 const el = (id) => document.getElementById(id);
@@ -357,8 +353,21 @@ async function startQuiz(){
     const res = await fetch(CONFIG.APPS_SCRIPT_URL + '?action=getQuestions');
     const data = await res.json();
     if(!data.ok) throw new Error(data.error || 'Gagal memuat soal');
-    state.questions = data.questions;
-    state.followups = data.followups || {};
+    
+    // Pastikan nomor soal selalu berupa string yang bersih
+    state.questions = (data.questions || []).map(q => {
+      q.no = String(q.no).trim();
+      return q;
+    });
+
+    // Normalisasi key followups ke format String
+    state.followups = {};
+    if(data.followups){
+      Object.keys(data.followups).forEach(key => {
+        state.followups[String(key).trim()] = data.followups[key];
+      });
+    }
+
     state.index = 0;
     state.mode = 'primary';
     state.pending = [];
@@ -381,7 +390,7 @@ function cleanLabel(label){
 
 function renderQuestion(){
   const q = currentQuestion();
-  state.registry[q.no] = q; // ingat pertanyaan ini biar bisa dipakai pas submit
+  state.registry[q.no] = q;
 
   const baseTotal = state.questions.length;
   const total = baseTotal + (state.mode === 'sub' ? state.pending.length : 0);
@@ -394,7 +403,7 @@ function renderQuestion(){
 
   const slot = el('question-slot');
   slot.classList.remove('q-slide-enter');
-  void slot.offsetWidth; // reflow buat restart animasi
+  void slot.offsetWidth;
   slot.classList.add('q-slide-enter');
 
   let html = '<div class="qnum">' + stepNumber + '</div><h2>' + escapeHtml(q.text) + '</h2>';
@@ -506,7 +515,7 @@ function goBack(){
   renderQuestion();
 }
 
-/** Bikin daftar pertanyaan lanjutan (satu per pilihan yang dicentang) dari template. */
+/** Bikin daftar pertanyaan lanjutan dari template */
 function buildPendingFollowups(q, template){
   const selected = q.type === 'checkbox'
     ? (state.answers[q.no] || [])
@@ -520,14 +529,16 @@ function buildPendingFollowups(q, template){
       const custom = (state.otherText[key] || '').trim();
       displayName = custom || cleanLabel(label);
     }
+    const cleanParentNo = String(q.no).trim();
     return {
-      no: q.no + '|' + label,
-      text: template.text.replace('{pilihan}', displayName),
-      type: template.type,
+      no: cleanParentNo + '|' + label,
+      text: template.text.replace(/\{pilihan\}/gi, displayName),
+      type: template.type || 'radio',
       options: template.options,
       required: template.required,
       isSub: true,
-      parentNo: q.no
+      parentNo: cleanParentNo,
+      chosenOption: label
     };
   });
 }
@@ -542,9 +553,10 @@ function goNext(){
   }
   el('error-msg').style.display = 'none';
 
-  // Kalau baru selesai jawab pertanyaan utama & ada template follow-up buat pertanyaan ini
+  // Cek apakah pertanyaan utama memiliki follow-up template
   if(state.mode === 'primary'){
-    const template = state.followups[q.no];
+    const qKey = String(q.no).trim();
+    const template = state.followups[qKey];
     if(template && (q.type === 'checkbox' || q.type === 'radio')){
       const pending = buildPendingFollowups(q, template);
       if(pending.length > 0){
@@ -563,7 +575,7 @@ function goNext(){
       renderQuestion();
       return;
     }
-    // selesai semua follow-up, balik ke alur utama
+    // Selesai pertanyaan lanjutan, kembali ke alur induk berikutnya
     state.mode = 'primary';
     state.pending = [];
     state.subIndex = 0;
@@ -601,6 +613,7 @@ function buildFinalValue(q){
 }
 
 function appendOtherIfNeeded(q, label){
+  if(!q.options) return label;
   const opt = q.options.find(o => o.label === label);
   if(opt && opt.hasOther){
     const key = q.no + '|' + label;
@@ -619,13 +632,14 @@ async function submitAnswers(){
     const q = state.registry[no];
     payload.answers[no] = buildFinalValue(q);
     if(q.isSub){
-      payload.labels[no] = q.parentNo + '. ' + q.text;
+      payload.labels[no] = q.parentNo + 'b. ' + q.text;
     }
   });
 
   try{
     await fetch(CONFIG.APPS_SCRIPT_URL, {
       method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload)
     });
     showScreen('done');
